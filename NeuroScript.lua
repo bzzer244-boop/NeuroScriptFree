@@ -1,7 +1,8 @@
 -- ✅ NeuroScript (safe/dev edition) — GUI estilo 8.5 + Debug Tools p/ SEU jogo
 -- Coloque este LocalScript em StarterPlayerScripts (para uso em lugar próprio)
 -- Recursos: Logo/minimizar neon ciano, Speed (WalkSpeed/Velocity), Fly c/ velocidade própria,
---           Pulo extra “soft” (para testes), Teleport p/ spawn salvo, ESP 👥 (nome+Highlight).
+--           JumpPower configurável (campo + ON/OFF), Teleport p/ spawn salvo, ESP 👥 (nome+Highlight).
+-- ⚠️ Use apenas no SEU lugar/jogo. Não foi feito para burlar jogos de terceiros.
 
 -- ========= Serviços =========
 local Players = game:GetService("Players")
@@ -33,7 +34,6 @@ local function captureSpawnCF()
 	task.defer(function()
 		local char, hrp = safeChar()
 		if hrp then
-			-- Salva primeiro ponto onde o char aparece após respawn (seu mapa)
 			if not savedSpawnCF then
 				savedSpawnCF = hrp.CFrame
 			end
@@ -54,8 +54,8 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 -- Janela principal (estilo 8.5)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 500, 0, 370)
-frame.Position = UDim2.new(0.5, -250, 0.5, -185)
+frame.Size = UDim2.new(0, 500, 0, 420)
+frame.Position = UDim2.new(0.5, -250, 0.5, -210)
 frame.BackgroundColor3 = Color3.fromRGB(10,15,35)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -199,7 +199,7 @@ end
 -- ===== Inputs =====
 local speedBox = Instance.new("TextBox")
 speedBox.Size = UDim2.new(0.48,0,0,36)
-speedBox.Position = UDim2.new(0,0,0.82,0)
+speedBox.Position = UDim2.new(0,0,0.78,0)
 speedBox.BackgroundColor3 = Color3.fromRGB(20,30,60)
 speedBox.Text = "Speed chão (ex: 80)"
 speedBox.TextColor3 = Color3.fromRGB(255,255,255)
@@ -212,7 +212,7 @@ local sbC = Instance.new("UICorner"); sbC.CornerRadius = UDim.new(0,10); sbC.Par
 
 local flyBox = Instance.new("TextBox")
 flyBox.Size  = UDim2.new(0.48,0,0,36)
-flyBox.Position = UDim2.new(0.52,0,0.82,0)
+flyBox.Position = UDim2.new(0.52,0,0.78,0)
 flyBox.BackgroundColor3 = Color3.fromRGB(20,30,60)
 flyBox.Text = "Fly speed (ex: 100)"
 flyBox.TextColor3 = Color3.fromRGB(255,255,255)
@@ -223,12 +223,25 @@ flyBox.Parent = body
 addNeon(flyBox)
 local fbC = Instance.new("UICorner"); fbC.CornerRadius = UDim.new(0,10); fbC.Parent = flyBox
 
+local jumpBox = Instance.new("TextBox")
+jumpBox.Size  = UDim2.new(1,0,0,36)
+jumpBox.Position = UDim2.new(0,0,0.88,0)
+jumpBox.BackgroundColor3 = Color3.fromRGB(20,30,60)
+jumpBox.Text = "JumpPower (ex: 75)"
+jumpBox.TextColor3 = Color3.fromRGB(255,255,255)
+jumpBox.Font = Enum.Font.Gotham
+jumpBox.PlaceholderText = "ex: 75"
+jumpBox.TextSize = 16
+jumpBox.Parent = body
+addNeon(jumpBox)
+local jpC = Instance.new("UICorner"); jpC.CornerRadius = UDim.new(0,10); jpC.Parent = jumpBox
+
 -- ===== Botões =====
 local btnSpawn   = makeBtn("🏠 Auto Spawn (TP)",          0,1)
 local btnSpeed   = makeBtn("⚡ Speed: OFF",                0,2)
 local btnSpeedMd = makeBtn("🛠 Modo Speed: WalkSpeed",     1,1)
 local btnFly     = makeBtn("🕊 Fly: OFF",                  1,2)
-local btnJump    = makeBtn("🦘 Pulo Extra: OFF",           2,1)
+local btnJumpOn  = makeBtn("🦘 JumpPower: OFF",            2,1)
 local btnESP     = makeBtn("👥 ESP Players: OFF",          2,2)
 
 -- ========= Estados =========
@@ -240,7 +253,9 @@ local flying = false
 local flySpeed = 100
 local bv, bg
 
-local extraJump = false
+local jumpOn = false
+local targetJump = 75
+local defaultJump = nil
 
 local espOn = false
 local espFolder = Instance.new("Folder"); espFolder.Name = "Neuro_ESP"; espFolder.Parent = workspace
@@ -309,7 +324,7 @@ end)
 
 -- ========= FLY =========
 local function startFly()
-	local _, hrp, hum = safeChar()
+	local _, hrp = safeChar()
 	bv = Instance.new("BodyVelocity")
 	bv.Velocity = Vector3.zero
 	bv.MaxForce = Vector3.new(1e5,1e5,1e5)
@@ -370,26 +385,54 @@ flyBox.FocusLost:Connect(function(enter)
 	end
 end)
 
--- ========= Pulo extra (debug para SEU jogo) =========
--- Aplica um “soft reset” no eixo Y e força Jumping; útil p/ mapas próprios sem anti-cheat.
--- Não use para contornar jogos de terceiros.
-local function softExtraJump()
-	local _, hrp, hum = safeChar()
-	-- Zera Y suavemente para não acumular dano/queda em jogos próprios
-	local vel = hrp.AssemblyLinearVelocity
-	hrp.AssemblyLinearVelocity = Vector3.new(vel.X, 0, vel.Z)
-	-- Impulso curto
-	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+-- ========= JumpPower Configurável =========
+local function applyJump(hum)
+	if not hum then return end
+	if defaultJump == nil then
+		defaultJump = hum.UseJumpPower and hum.JumpPower or 50
+	end
+	if jumpOn then
+		if hum.UseJumpPower == false then hum.UseJumpPower = true end
+		if hum.JumpPower ~= targetJump then hum.JumpPower = targetJump end
+	else
+		-- restaura padrão
+		if defaultJump then
+			if hum.UseJumpPower == false then hum.UseJumpPower = true end
+			hum.JumpPower = defaultJump
+		end
+	end
 end
 
-btnJump.MouseButton1Click:Connect(function()
-	extraJump = not extraJump
-	btnJump.Text = extraJump and "🦘 Pulo Extra: ON" or "🦘 Pulo Extra: OFF"
+btnJumpOn.MouseButton1Click:Connect(function()
+	jumpOn = not jumpOn
+	btnJumpOn.Text = jumpOn and "🦘 JumpPower: ON" or "🦘 JumpPower: OFF"
+	local _,_,hum = safeChar()
+	applyJump(hum)
 end)
 
-UIS.JumpRequest:Connect(function()
-	if extraJump then
-		softExtraJump()
+jumpBox.FocusLost:Connect(function(enter)
+	if enter then
+		local v = tonumber(jumpBox.Text)
+		if v and v>0 and v<=400 then
+			targetJump = v
+			jumpOn = true
+			btnJumpOn.Text = "🦘 JumpPower: ON"
+			jumpBox.Text = "Jump = "..v
+			local _,_,hum = safeChar()
+			applyJump(hum)
+		else
+			jumpBox.Text = "Valor inválido!"
+		end
+	end
+end)
+
+-- mantém JumpPower quando ativo
+task.spawn(function()
+	while task.wait(0.25) do
+		if jumpOn then
+			local _,_,hum = safeChar()
+			applyJump(hum)
+		end
 	end
 end)
 
@@ -464,8 +507,7 @@ Players.PlayerAdded:Connect(function(plr)
 	end
 end)
 
-Players.PlayerRemoving:Connect(function(plr)
-	-- os elementos são limpos por AncestryChanged; podemos dar refresh por garantia
+Players.PlayerRemoving:Connect(function(_)
 	if espOn then refreshESP() end
 end)
 
@@ -477,9 +519,114 @@ player.CharacterAdded:Connect(function(char)
 		local hum = char:WaitForChild("Humanoid")
 		hum.WalkSpeed = targetSpeed
 	end
+	-- mantém JumpPower alvo se estiver ativo
+	if jumpOn then
+		local hum = char:WaitForChild("Humanoid")
+		applyJump(hum)
+	end
 	-- re-aplica ESP
 	if espOn then
 		task.wait(0.2)
 		refreshESP()
 	end
 end)
+
+-- ========= Suporte Mobile (botões + campos) =========
+if UIS.TouchEnabled then
+	local mobile = Instance.new("Frame")
+	mobile.Size = UDim2.new(0, 520, 0, 116)
+	mobile.Position = UDim2.new(0, 20, 1, -136)
+	mobile.BackgroundColor3 = Color3.fromRGB(15,20,50)
+	mobile.Parent = gui
+	addNeon(mobile)
+	local mc = Instance.new("UICorner"); mc.CornerRadius = UDim.new(0,14); mc.Parent = mobile
+
+	-- Linha 1: Botões
+	local function mBtn(txt, x)
+		local b = Instance.new("TextButton")
+		b.Size = UDim2.new(0,120,0,42)
+		b.Position = UDim2.new(0, x, 0, 8)
+		b.BackgroundColor3 = Color3.fromRGB(20,30,60)
+		b.Text = txt
+		b.TextColor3 = Color3.fromRGB(0,255,255)
+		b.Font = Enum.Font.GothamBold
+		b.TextSize = 16
+		b.Parent = mobile
+		addNeon(b)
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,10); c.Parent = b
+		return b
+	end
+
+	local mFly   = mBtn("🕊 Fly: OFF", 8)
+	local mSpeed = mBtn("⚡ Speed: OFF", 136)
+	local mJump  = mBtn("🦘 Jump: OFF", 264)
+	local mESP   = mBtn("👥 ESP: OFF", 392)
+
+	mFly.MouseButton1Click:Connect(function()
+		if flying then stopFly(); mFly.Text="🕊 Fly: OFF"; btnFly.Text="🕊 Fly: OFF"
+		else startFly(); mFly.Text="🕊 Fly: ON"; btnFly.Text="🕊 Fly: ON" end
+	end)
+
+	mSpeed.MouseButton1Click:Connect(function()
+		speedOn = not speedOn
+		mSpeed.Text = speedOn and "⚡ Speed: ON" or "⚡ Speed: OFF"
+		btnSpeed.Text = mSpeed.Text
+	end)
+
+	mJump.MouseButton1Click:Connect(function()
+		jumpOn = not jumpOn
+		mJump.Text = jumpOn and "🦘 Jump: ON" or "🦘 Jump: OFF"
+		btnJumpOn.Text = jumpOn and "🦘 JumpPower: ON" or "🦘 JumpPower: OFF"
+		local _,_,hum = safeChar(); applyJump(hum)
+	end)
+
+	mESP.MouseButton1Click:Connect(function()
+		espOn = not espOn
+		mESP.Text = espOn and "👥 ESP: ON" or "👥 ESP: OFF"
+		btnESP.Text = espOn and "👥 ESP Players: ON" or "👥 ESP Players: OFF"
+		refreshESP()
+	end)
+
+	-- Linha 2: Campos (Speed / Fly / Jump)
+	local function mBox(ph, x, w, onEnter)
+		local t = Instance.new("TextBox")
+		t.Size = UDim2.new(0, w, 0, 34)
+		t.Position = UDim2.new(0, x, 0, 60)
+		t.BackgroundColor3 = Color3.fromRGB(20,30,60)
+		t.Text = ph
+		t.TextColor3 = Color3.fromRGB(255,255,255)
+		t.Font = Enum.Font.Gotham
+		t.TextSize = 14
+		t.Parent = mobile
+		addNeon(t)
+		local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,10); c.Parent = t
+		t.FocusLost:Connect(function(enter) if enter then onEnter(t) end end)
+		return t
+	end
+
+	mBox("Speed (ex: 80)", 8, 160, function(tb)
+		local v = tonumber(tb.Text)
+		if v and v>0 and v<=1000 then
+			targetSpeed = v; speedOn = true
+			tb.Text = "Speed = "..v
+			btnSpeed.Text = "⚡ Speed: ON"; mSpeed.Text = "⚡ Speed: ON"
+		else tb.Text = "Valor inválido!" end
+	end)
+
+	mBox("Fly (ex: 100)", 176, 160, function(tb)
+		local v = tonumber(tb.Text)
+		if v and v>0 and v<=1500 then
+			flySpeed = v; tb.Text = "Fly = "..v
+		else tb.Text = "Valor inválido!" end
+	end)
+
+	mBox("Jump (ex: 75)", 344, 160, function(tb)
+		local v = tonumber(tb.Text)
+		if v and v>0 and v<=400 then
+			targetJump = v; jumpOn = true
+			tb.Text = "Jump = "..v
+			btnJumpOn.Text = "🦘 JumpPower: ON"; mJump.Text = "🦘 Jump: ON"
+			local _,_,hum = safeChar(); applyJump(hum)
+		else tb.Text = "Valor inválido!" end
+	end)
+end
