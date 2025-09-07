@@ -1,15 +1,20 @@
---  NeuroScript Loader com Key System avançado
+--  🔑 NeuroScript Loader com Key System (Replit + GitHub)
 
 local HttpService = game:GetService("HttpService")
 local Players     = game:GetService("Players")
 local player      = Players.LocalPlayer
 
---  CONFIGURAÇÃO (substitua com seu próprio Replit)
-local API_VALIDATE = "https://SEU-PROJETO.repl.co/validate"
-local API_KEYS     = "https://SEU-PROJETO.repl.co/keys?admin=SENHA123" -- opcional
-local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
+-- ================= CONFIGURAÇÃO =================
+-- Substitua pelo link público do seu Replit (⚠️ troque pelo seu!)
+local API_VALIDATE = "https://NeuroScriptKeySystem.bzzer244.repl.co/validate"
+-- Endpoint opcional para você listar todas as keys
+local API_KEYS     = "https://NeuroScriptKeySystem.bzzer244.repl.co/keys?admin=YOUR_SECRET_PASSWORD"
 
--- Função de GUI para solicitar a key ao usuário
+-- Seu script hospedado no GitHub (Raw link)
+local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
+-- =================================================
+
+-- GUI para pedir a Key
 local function requestKey()
     local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
     gui.Name = "NeuroLoader"
