@@ -1,11 +1,13 @@
 --  🔑 NeuroScript Loader com Key System (Render + GitHub)
-
 local HttpService = game:GetService("HttpService")
 local Players     = game:GetService("Players")
 local player      = Players.LocalPlayer
 
 -- ================= CONFIGURAÇÃO =================
+-- ⚠️ Substitua pelo link da sua API no Render
 local API_VALIDATE = "https://neurosistemkeys.onrender.com/validate"
+
+-- Seu script hospedado no GitHub (Raw link)
 local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
 -- =================================================
 
@@ -53,9 +55,9 @@ local function requestKey()
     btn.MouseButton1Click:Connect(function()
         local key = box.Text
         status.Text = "⏳ Validando..."
-
         local success, response = pcall(function()
-            return game:HttpGet(API_VALIDATE.."?key="..key)
+            -- Envia key + UserId para travar no dispositivo
+            return HttpService:GetAsync(API_VALIDATE.."?key="..key.."&user="..player.UserId)
         end)
 
         if success then
@@ -67,9 +69,8 @@ local function requestKey()
                 status.Text = "✅ Key válida! Carregando..."
                 task.wait(1)
                 gui:Destroy()
-
                 local ok2, code = pcall(function()
-                    return game:HttpGet(SCRIPT_URL)
+                    return HttpService:GetAsync(SCRIPT_URL)
                 end)
                 if ok2 then
                     loadstring(code)()
@@ -77,10 +78,10 @@ local function requestKey()
                     warn("Erro ao baixar NeuroScript:", code)
                 end
             else
-                status.Text = "❌ Key inválida!"
+                status.Text = "❌ Key inválida ou já usada!"
             end
         else
-            status.Text = "⚠️ Erro ao conectar API!"
+            status.Text = "⚠️ Erro de conexão!"
         end
     end)
 end
