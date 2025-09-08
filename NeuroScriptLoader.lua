@@ -11,6 +11,27 @@ local API_VALIDATE = "https://neurosistemkeys.onrender.com/validate"
 local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
 -- =================================================
 
+
+-- Função compatível para HTTP (Executor + Studio)
+local function httpGet(url)
+    if syn and syn.request then
+        return syn.request({Url = url, Method = "GET"})
+    elseif http_request then
+        return http_request({Url = url, Method = "GET"})
+    elseif request then
+        return request({Url = url, Method = "GET"})
+    elseif fluxus and fluxus.request then
+        return fluxus.request({Url = url, Method = "GET"})
+    else
+        -- fallback pro Studio (caso esteja testando lá)
+        local ok, res = pcall(function()
+            return {Success = true, Body = game:GetService("HttpService"):GetAsync(url)}
+        end)
+        if ok then return res else return {Success = false, Body = "Executor não suporta requests"} end
+    end
+end
+
+
 -- GUI para pedir a Key
 local function requestKey()
     local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
@@ -55,33 +76,32 @@ local function requestKey()
     btn.MouseButton1Click:Connect(function()
         local key = box.Text
         status.Text = "⏳ Validando..."
-        local success, response = pcall(function()
-            -- Envia key + UserId para travar no dispositivo
-            return HttpService:GetAsync(API_VALIDATE.."?key="..key.."&user="..player.UserId)
-        end)
 
-        if success then
+        local res = httpGet(API_VALIDATE.."?key="..key.."&user="..player.UserId)
+
+        if res and res.Success and res.Body then
             local ok, data = pcall(function()
-                return HttpService:JSONDecode(response)
+                return HttpService:JSONDecode(res.Body)
             end)
 
             if ok and data.valid == true then
                 status.Text = "✅ Key válida! Carregando..."
                 task.wait(1)
                 gui:Destroy()
-                local ok2, code = pcall(function()
-                    return HttpService:GetAsync(SCRIPT_URL)
-                end)
-                if ok2 then
-                    loadstring(code)()
+
+                local scriptRes = httpGet(SCRIPT_URL)
+                if scriptRes.Success and scriptRes.Body then
+                    loadstring(scriptRes.Body)()
                 else
-                    warn("Erro ao baixar NeuroScript:", code)
+                    warn("Erro ao baixar NeuroScript:", scriptRes.Body)
+                    status.Text = "⚠️ Erro ao baixar script!"
                 end
             else
                 status.Text = "❌ Key inválida ou já usada!"
             end
         else
             status.Text = "⚠️ Erro de conexão!"
+            warn("Detalhes:", res and res.Body or "Sem resposta")
         end
     end)
 end
