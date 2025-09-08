@@ -6,7 +6,7 @@ local player      = Players.LocalPlayer
 
 -- ================= CONFIGURAÇÃO =================
 -- Substitua pelo link público do seu Replit (⚠️ troque pelo seu!)
-local API_VALIDATE = "https://NeuroScriptKeySystem.bzzer244.repl.co/validate"
+local API_VALIDATE = "https://neurosistemkeys.onrender.com/validate"
 -- Endpoint opcional para você listar todas as keys
 local API_KEYS     = "https://NeuroScriptKeySystem.bzzer244.repl.co/keys?admin=YOUR_SECRET_PASSWORD"
 
