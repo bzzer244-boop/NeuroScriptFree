@@ -5,10 +5,7 @@ local Players     = game:GetService("Players")
 local player      = Players.LocalPlayer
 
 -- ================= CONFIGURAÇÃO =================
--- API no Render
 local API_VALIDATE = "https://neurosistemkeys.onrender.com/validate"
-
--- Seu script hospedado no GitHub (Raw link)
 local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
 -- =================================================
 
@@ -56,22 +53,23 @@ local function requestKey()
     btn.MouseButton1Click:Connect(function()
         local key = box.Text
         status.Text = "⏳ Validando..."
+
         local success, response = pcall(function()
-            return HttpService:GetAsync(API_VALIDATE.."?key="..key)
+            return game:HttpGet(API_VALIDATE.."?key="..key)
         end)
 
         if success then
-            local data
-            local ok, err = pcall(function()
-                data = HttpService:JSONDecode(response)
+            local ok, data = pcall(function()
+                return HttpService:JSONDecode(response)
             end)
 
-            if ok and data and data.valid then
+            if ok and data.valid == true then
                 status.Text = "✅ Key válida! Carregando..."
                 task.wait(1)
                 gui:Destroy()
+
                 local ok2, code = pcall(function()
-                    return HttpService:GetAsync(SCRIPT_URL)
+                    return game:HttpGet(SCRIPT_URL)
                 end)
                 if ok2 then
                     loadstring(code)()
