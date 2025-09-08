@@ -1,14 +1,12 @@
---  🔑 NeuroScript Loader com Key System (Replit + GitHub)
+--  🔑 NeuroScript Loader com Key System (Render + GitHub)
 
 local HttpService = game:GetService("HttpService")
 local Players     = game:GetService("Players")
 local player      = Players.LocalPlayer
 
 -- ================= CONFIGURAÇÃO =================
--- Substitua pelo link público do seu Replit (⚠️ troque pelo seu!)
+-- API no Render
 local API_VALIDATE = "https://neurosistemkeys.onrender.com/validate"
--- Endpoint opcional para você listar todas as keys
-local API_KEYS     = "https://NeuroScriptKeySystem.bzzer244.repl.co/keys?admin=YOUR_SECRET_PASSWORD"
 
 -- Seu script hospedado no GitHub (Raw link)
 local SCRIPT_URL   = "https://raw.githubusercontent.com/bzzer244-boop/NeuroScriptFree/refs/heads/main/NeuroScript.lua"
@@ -62,20 +60,29 @@ local function requestKey()
             return HttpService:GetAsync(API_VALIDATE.."?key="..key)
         end)
 
-        if success and response == "VALID" then
-            status.Text = "✅ Key válida! Carregando..."
-            task.wait(1)
-            gui:Destroy()
-            local ok, code = pcall(function()
-                return HttpService:GetAsync(SCRIPT_URL)
+        if success then
+            local data
+            local ok, err = pcall(function()
+                data = HttpService:JSONDecode(response)
             end)
-            if ok then
-                loadstring(code)()
+
+            if ok and data and data.valid then
+                status.Text = "✅ Key válida! Carregando..."
+                task.wait(1)
+                gui:Destroy()
+                local ok2, code = pcall(function()
+                    return HttpService:GetAsync(SCRIPT_URL)
+                end)
+                if ok2 then
+                    loadstring(code)()
+                else
+                    warn("Erro ao baixar NeuroScript:", code)
+                end
             else
-                warn("Erro ao baixar NeuroScript:", code)
+                status.Text = "❌ Key inválida!"
             end
         else
-            status.Text = "❌ Key inválida!"
+            status.Text = "⚠️ Erro ao conectar API!"
         end
     end)
 end
